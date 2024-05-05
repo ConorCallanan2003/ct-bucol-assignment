@@ -41,32 +41,32 @@
    enum yytokentype {
      BEGINNING = 258,
      SPECIFIER = 259,
-     NEWLINE = 260,
-     SEMICOLON = 261,
-     IDENTIFIER = 262,
-     INTEGER = 263,
-     STRING = 264,
-     BODY = 265,
-     PRINT = 266,
-     MOVE = 267,
-     TO = 268,
-     INPUT = 269,
+     SEMICOLON = 260,
+     IDENTIFIER = 261,
+     INTEGER = 262,
+     STRING = 263,
+     BODY = 264,
+     PRINT = 265,
+     MOVE = 266,
+     TO = 267,
+     INPUT = 268,
+     ADD = 269,
      END = 270
    };
 #endif
 /* Tokens.  */
 #define BEGINNING 258
 #define SPECIFIER 259
-#define NEWLINE 260
-#define SEMICOLON 261
-#define IDENTIFIER 262
-#define INTEGER 263
-#define STRING 264
-#define BODY 265
-#define PRINT 266
-#define MOVE 267
-#define TO 268
-#define INPUT 269
+#define SEMICOLON 260
+#define IDENTIFIER 261
+#define INTEGER 262
+#define STRING 263
+#define BODY 264
+#define PRINT 265
+#define MOVE 266
+#define TO 267
+#define INPUT 268
+#define ADD 269
 #define END 270
 
 

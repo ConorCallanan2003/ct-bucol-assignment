@@ -4,23 +4,23 @@ extern int yylex();
 extern int yylineno;
 void yyerror(const char *s);
 %}
-%token BEGINNING SPECIFIER NEWLINE SEMICOLON IDENTIFIER INTEGER STRING BODY PRINT MOVE TO INPUT END
+%token BEGINNING SPECIFIER SEMICOLON IDENTIFIER INTEGER STRING BODY PRINT MOVE TO INPUT ADD END
 %%
-sentence: BEGINNING newlines declaration_section newlines body_section newlines END {printf("VALID\n");}
+sentence: BEGINNING declaration_section body_section END {printf("VALID\n");}
 
-declaration_section: declaration newlines | declaration newlines declaration_section
+declaration_section: declaration | declaration declaration_section
 
 declaration: SPECIFIER IDENTIFIER
 
-body_section: BODY newlines statements
+body_section: BODY statements
 
-statements: statement newlines | statement newlines statements
+statements: statement | statement statements
 
 statement: assignment | addition | input | output
 
-assignment: MOVE IDENTIFIER TO IDENTIFIER
+assignment: MOVE IDENTIFIER TO IDENTIFIER | MOVE INTEGER TO IDENTIFIER
 
-addition: MOVE INTEGER TO IDENTIFIER
+addition: ADD INTEGER TO IDENTIFIER | ADD IDENTIFIER TO IDENTIFIER
 
 input: INPUT identifiers
 
@@ -30,7 +30,6 @@ output: PRINT prinputs
 
 prinputs: IDENTIFIER | STRING | IDENTIFIER SEMICOLON prinputs | STRING SEMICOLON prinputs
 
-newlines: NEWLINE | NEWLINE newlines
 
 %%
 extern FILE *yyin;
@@ -45,5 +44,5 @@ int main()
 
 void yyerror(const char *s)
 {
-    fprintf(stderr, "%s\n%d", s, yylineno);
+    fprintf(stderr, "%s\n", s);
 }
