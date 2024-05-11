@@ -57,28 +57,66 @@ body_section: BODY statements
 
 statements: statement | statement statements
 
-statement: assignment_id_to_id | assignment_int_to_int | addition | input | output
+statement: assignment_id_to_id | assignment_int_to_int | addition_int_to_id | addition_id_to_id | input | output
 
 assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {
 	Variable* var1 = lookup_var($2);
 	Variable* var2 = lookup_var($4);
+	if (var1 == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $2)
+	}
+	if (var2 == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+	}
 	if (var1 != NULL && var2 != NULL && var1->numOfDigits != var2->numOfDigits) {
-		printf("Warning - bad programmer at work");
+		printf("Warning on line %d\n", yylineno);
+		printf("Invalid value being assigned to variable %s!\n", $4);
+		printf("You are trying to assign the value stored in variable %s to the variable %s, even though they were declared as different sizes (%d and %d).\n\n", $4, $2, var2->numOfDigits, var1->numOfDigits);
 	}
 }
 
 assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {
 	Variable* var = lookup_var($4);
+	if (var == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+	}
 	if (var != NULL && var->numOfDigits != $2) {
-		printf("Warning - bad programmer at work");
+		printf("Warning on line %d\n", yylineno);
+		printf("Invalid value being assigned to variable %s!\n", $4);
+		printf("You are trying to assign an integer of size %d to the variable %s, even though they were declared as a different size (%d).\n\n", $2, $4, var->numOfDigits);
 	}
 }
 
-addition: ADD INTEGER TO IDENTIFIER | ADD IDENTIFIER TO IDENTIFIER
+addition_int_to_id: ADD INTEGER TO IDENTIFIER  {
+	Variable* var1 = lookup_var($2);
+	Variable* var2 = lookup_var($4);
+	if (var1 == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $2)
+	}
+	if (var2 == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+	}
+}
+
+addition_id_to_id: ADD IDENTIFIER TO IDENTIFIER {
+	Variable* var1 = lookup_var($2);
+	Variable* var2 = lookup_var($4);
+	if (var1 == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $2)
+	}
+	if (var2 == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+	}
+}
 
 input: INPUT identifiers
 
-identifiers: IDENTIFIER | IDENTIFIER SEMICOLON identifiers
+identifiers: IDENTIFIER | IDENTIFIER SEMICOLON identifiers {
+	Variable* var = lookup_var($4);
+	if (var == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+	}
+}
 
 output: PRINT prinputs
 
@@ -98,5 +136,5 @@ int main()
 
 void yyerror(const char *s)
 {
-    fprintf(stderr, "%s\n", s);
+    fprintf(stderr, "Parse error on line %d\n", yylineno);
 }

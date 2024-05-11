@@ -17,7 +17,7 @@
 "input" {return INPUT;}
 "end"   return END;
 ";"     return SEMICOLON;
-"x"+" "  {
+^"x"+" "  {
     yylval.ival = strlen(yytext) - 1; 
     return SPECIFIER;
 }
