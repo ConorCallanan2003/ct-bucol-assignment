@@ -7,7 +7,7 @@
 %%
 [\t ]+	;
 [\n ]   {yylineno++;};
-"."     ;
+"."     {return DOT;};
 "beginning" {return BEGINNING;}
 "body"  {return BODY;};
 "print" {return PRINT;};
@@ -16,7 +16,7 @@
 "to"    {return TO;};
 "input" {return INPUT;}
 "end"   return END;
-";"     return SEMICOLON;
+";"     {return SEMICOLON;};
 ^"x"+" "  {
     yylval.ival = strlen(yytext) - 1; 
     return SPECIFIER;

@@ -36,6 +36,27 @@ Variable *lookup_var(char *name) {
     return NULL;
 }
 
+void undeclared_id(char* id, int lineno) {
+	char error_string[256]; 
+	int len = snprintf(error_string, sizeof(error_string), "Error | Use of undeclared variable on line %d: %s\n", lineno, id);
+	if (len >= 0 && len < sizeof(error_string)) {
+		yyerror(error_string);
+	} else {
+		yyerror("syntax error");
+	}
+}
+
+void missing_dot(int lineno) {
+	char error_string[256]; 
+	int len = snprintf(error_string, sizeof(error_string), "Error | EOL dot missing on line %d", lineno);
+	if (len >= 0 && len < sizeof(error_string)) {
+		yyerror(error_string);
+	} else {
+		yyerror("syntax error");
+	}
+}
+
+
 %}
 %union {
     int ival;
@@ -44,21 +65,22 @@ Variable *lookup_var(char *name) {
 %token <ival> SPECIFIER
 %token <ival> INTEGER
 %token <str> IDENTIFIER
-%token BEGINNING SEMICOLON BODY STRING PRINT MOVE TO INPUT ADD END
+%token BEGINNING SEMICOLON BODY STRING DOT PRINT MOVE TO INPUT ADD END
 %%
-sentence: BEGINNING declaration_section body_section END {printf("Parsed successfully!\n");}
 
-declaration_section: declaration | declaration declaration_section
+program: beginning_section body_section END DOT {printf("Parsed successfully!\n");} | beginning_section body_section END {missing_dot(yylineno);}
+
+beginning_section: BEGINNING DOT | BEGINNING DOT declaration_section | BEGINNING {missing_dot(yylineno);} | BEGINNING declaration_section {missing_dot(yylineno);}
+
+declaration_section: declaration DOT | declaration DOT declaration_section | declaration {missing_dot(yylineno);} | declaration declaration_section {missing_dot(yylineno);}
 
 declaration: SPECIFIER IDENTIFIER {
 	add_var_to_vars($2, $1);
 }
 
-body_section: body_keyword statements
+body_section: BODY DOT | BODY DOT statements | BODY {missing_dot(yylineno);} | BODY statement {missing_dot(yylineno);}
 
-body_keyword: BODY
-
-statements: statement | statement statements
+statements: statement DOT | statement DOT statements | statement {missing_dot(yylineno);} | statement statements {missing_dot(yylineno);}
 
 statement: assignment_id_to_id | assignment_int_to_int | addition | input | output
 
@@ -66,33 +88,27 @@ assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {
 	Variable* var1 = lookup_var($2);
 	Variable* var2 = lookup_var($4);
 	if (var1 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $2);
+		undeclared_id($2, yylineno);
 	}
 	if (var2 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
+		undeclared_id($4, yylineno);
 	}
-	if (var1 != NULL && var2 != NULL && var1->numOfDigits != var2->numOfDigits) {
+	if (var1 != NULL && var2 != NULL && var1->numOfDigits > var2->numOfDigits) {
 		printf("Warning on line %d\n", yylineno);
-		printf("Invalid value being assigned to variable %s!\n", $4);
-		printf("You are trying to assign the value stored in variable %s to the variable %s, even though they were declared as different sizes (%d and %d).\n\n", $4, $2, var2->numOfDigits, var1->numOfDigits);
+		printf("Potentially invalid value being assigned to variable %s!\n", $4);
+		printf("You are trying to assign the value stored in variable %s to the variable %s, even though the first operand has been declared with a larger capacity than the second. (%d and %d).\n\n", $4, $2, var2->numOfDigits, var1->numOfDigits);
 	}
 }
 
 assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {
 	Variable* var = lookup_var($4);
 	if (var == NULL) {
-		char error_string[256]; 
-		int len = snprintf(error_string, sizeof(error_string), "Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
-		if (len >= 0 && len < sizeof(error_string)) {
-			yyerror(error_string);
-		} else {
-			printf("Error formatting string\n");
-		}
+		undeclared_id($4, yylineno);
 	}
-	if (var != NULL && var->numOfDigits != $2) {
+	if (var != NULL && var->numOfDigits < $2) {
 		printf("Warning on line %d\n", yylineno);
 		printf("Invalid value being assigned to variable %s!\n", $4);
-		printf("You are trying to assign an integer of size %d to the variable %s, even though they were declared as a different size (%d).\n\n", $2, $4, var->numOfDigits);
+		printf("You are trying to assign an integer of size %d to the variable %s, even though the number specified is too large for the variable's capacity (%d).\n\n", $2, $4, var->numOfDigits);
 	}
 }
 
@@ -101,7 +117,12 @@ addition: addition_int_to_id | addition_id_to_id
 addition_int_to_id: ADD INTEGER TO IDENTIFIER {
 	Variable* var = lookup_var($4);
 	if (var == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
+		undeclared_id($4, yylineno);
+	}
+	if (var != NULL && var->numOfDigits < $2) {
+		printf("Warning on line %d\n", yylineno);
+		printf("Invalid value being assigned to variable %s!\n", $4);
+		printf("You are trying to add an integer of size %d to the variable %s, even though the number specified is too large for the variable's capacity (%d).\n\n", $2, $4, var->numOfDigits);
 	}
 }
 
@@ -109,10 +130,15 @@ addition_id_to_id: ADD IDENTIFIER TO IDENTIFIER {
 	Variable* var1 = lookup_var($2);
 	Variable* var2 = lookup_var($4);
 	if (var1 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $2);
+		undeclared_id($2, yylineno);
 	}
 	if (var2 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
+		undeclared_id($4, yylineno);
+	}
+	if (var1 != NULL && var2 != NULL && var2->numOfDigits < var1->numOfDigits) {
+		printf("Warning on line %d\n", yylineno);
+		printf("Invalid value potentially being assigned to variable %s!\n", $4);
+		printf("You are trying to add the value stored in the variable %s to the variable %s, even though the first operand has a larger capacity than the second (%d vs %d).\n\n", $2, $4, var1->numOfDigits, var2->numOfDigits);
 	}
 }
 
@@ -121,13 +147,23 @@ input: INPUT identifiers
 identifiers: IDENTIFIER | IDENTIFIER SEMICOLON identifiers {
 	Variable* var = lookup_var($1);
 	if (var == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $1);
+		undeclared_id($1, yylineno);
 	}
 }
 
 output: PRINT prinputs
 
-prinputs: STRING | IDENTIFIER | IDENTIFIER SEMICOLON prinputs | STRING SEMICOLON prinputs
+prinputs: STRING | IDENTIFIER {
+	Variable* var = lookup_var($1);
+	if (var == NULL) {
+		undeclared_id($1, yylineno);
+	}
+} | IDENTIFIER SEMICOLON prinputs {
+	Variable* var = lookup_var($1);
+	if (var == NULL) {
+		undeclared_id($1, yylineno);
+	}
+} | STRING SEMICOLON prinputs
 
 %%
 extern FILE *yyin;
@@ -143,7 +179,7 @@ int main()
 void yyerror(const char *s)
 {
 	if (strcmp(s, "syntax error") == 0) {
-		printf("A syntax error has been discovered on line %d\n", yylineno);
+		printf("A syntax error has been identified on line %d\n", yylineno);
 	} else {
     	printf("%s\n", s);
 	}
