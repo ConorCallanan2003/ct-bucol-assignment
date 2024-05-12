@@ -48,7 +48,7 @@ void undeclared_id(char* id, int lineno) {
 
 void missing_dot(int lineno) {
 	char error_string[256]; 
-	int len = snprintf(error_string, sizeof(error_string), "Error | EOL dot missing on line %d", lineno);
+	int len = snprintf(error_string, sizeof(error_string), "Error | Period missing on line %d", lineno-1);
 	if (len >= 0 && len < sizeof(error_string)) {
 		yyerror(error_string);
 	} else {
@@ -78,13 +78,13 @@ declaration: SPECIFIER IDENTIFIER {
 	add_var_to_vars($2, $1);
 }
 
-body_section: BODY DOT | BODY DOT statements | BODY {missing_dot(yylineno);} | BODY statement {missing_dot(yylineno);}
+body_section: BODY DOT | BODY DOT statements | BODY {missing_dot(yylineno);} | BODY statements {missing_dot(yylineno);}
 
-statements: statement DOT | statement DOT statements | statement {missing_dot(yylineno);} | statement statements {missing_dot(yylineno);}
+statements: statement | statement statements
 
 statement: assignment_id_to_id | assignment_int_to_int | addition | input | output
 
-assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {
+assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {missing_dot(yylineno);} | MOVE IDENTIFIER TO IDENTIFIER DOT {
 	Variable* var1 = lookup_var($2);
 	Variable* var2 = lookup_var($4);
 	if (var1 == NULL) {
@@ -100,7 +100,7 @@ assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {
 	}
 }
 
-assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {
+assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {missing_dot(yylineno);} | MOVE INTEGER TO IDENTIFIER DOT {
 	Variable* var = lookup_var($4);
 	if (var == NULL) {
 		undeclared_id($4, yylineno);
@@ -112,7 +112,7 @@ assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {
 	}
 }
 
-addition: addition_int_to_id | addition_id_to_id
+addition: addition_int_to_id DOT | addition_id_to_id DOT | addition_int_to_id {missing_dot(yylineno);} | addition_id_to_id {missing_dot(yylineno);}
 
 addition_int_to_id: ADD INTEGER TO IDENTIFIER {
 	Variable* var = lookup_var($4);
@@ -142,7 +142,7 @@ addition_id_to_id: ADD IDENTIFIER TO IDENTIFIER {
 	}
 }
 
-input: INPUT identifiers 
+input: INPUT identifiers DOT | INPUT identifiers {missing_dot(yylineno);} 
 
 identifiers: IDENTIFIER | IDENTIFIER SEMICOLON identifiers {
 	Variable* var = lookup_var($1);
@@ -151,7 +151,7 @@ identifiers: IDENTIFIER | IDENTIFIER SEMICOLON identifiers {
 	}
 }
 
-output: PRINT prinputs
+output: PRINT prinputs DOT | PRINT prinputs {missing_dot(yylineno);} 
 
 prinputs: STRING | IDENTIFIER {
 	Variable* var = lookup_var($1);
