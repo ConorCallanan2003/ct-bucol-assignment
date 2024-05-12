@@ -5,7 +5,7 @@ ISE 2nd Year Compiler Theory module
 
 **Compile:**
 
-`flex -i minimal.l && bison -d minimal.y && cc -c lex.yy.c minimal.tab.c && cc -o example lex.yy.o minimal.tab.o -ll`
+`flex -i bucol.l && bison -d bucol.y && cc -c lex.yy.c bucol.tab.c && cc -o example lex.yy.o bucol.tab.o -ll`
 
 
 
