@@ -35,6 +35,7 @@ Variable *lookup_var(char *name) {
     }
     return NULL;
 }
+
 %}
 %union {
     int ival;
@@ -43,9 +44,9 @@ Variable *lookup_var(char *name) {
 %token <ival> SPECIFIER
 %token <ival> INTEGER
 %token <str> IDENTIFIER
-%token BEGINNING SEMICOLON STRING BODY PRINT MOVE TO INPUT ADD END
+%token BEGINNING SEMICOLON BODY STRING PRINT MOVE TO INPUT ADD END
 %%
-sentence: BEGINNING declaration_section body_section END {printf("VALID\n");}
+sentence: BEGINNING declaration_section body_section END {printf("Parsed successfully!\n");}
 
 declaration_section: declaration | declaration declaration_section
 
@@ -53,20 +54,22 @@ declaration: SPECIFIER IDENTIFIER {
 	add_var_to_vars($2, $1);
 }
 
-body_section: BODY statements
+body_section: body_keyword statements
+
+body_keyword: BODY
 
 statements: statement | statement statements
 
-statement: assignment_id_to_id | assignment_int_to_int | addition_int_to_id | addition_id_to_id | input | output
+statement: assignment_id_to_id | assignment_int_to_int | addition | input | output
 
 assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {
 	Variable* var1 = lookup_var($2);
 	Variable* var2 = lookup_var($4);
 	if (var1 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $2)
+		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $2);
 	}
 	if (var2 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
 	}
 	if (var1 != NULL && var2 != NULL && var1->numOfDigits != var2->numOfDigits) {
 		printf("Warning on line %d\n", yylineno);
@@ -78,7 +81,13 @@ assignment_id_to_id: MOVE IDENTIFIER TO IDENTIFIER {
 assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {
 	Variable* var = lookup_var($4);
 	if (var == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+		char error_string[256]; 
+		int len = snprintf(error_string, sizeof(error_string), "Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
+		if (len >= 0 && len < sizeof(error_string)) {
+			yyerror(error_string);
+		} else {
+			printf("Error formatting string\n");
+		}
 	}
 	if (var != NULL && var->numOfDigits != $2) {
 		printf("Warning on line %d\n", yylineno);
@@ -87,14 +96,12 @@ assignment_int_to_int: MOVE INTEGER TO IDENTIFIER {
 	}
 }
 
-addition_int_to_id: ADD INTEGER TO IDENTIFIER  {
-	Variable* var1 = lookup_var($2);
-	Variable* var2 = lookup_var($4);
-	if (var1 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $2)
-	}
-	if (var2 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+addition: addition_int_to_id | addition_id_to_id
+
+addition_int_to_id: ADD INTEGER TO IDENTIFIER {
+	Variable* var = lookup_var($4);
+	if (var == NULL) {
+		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
 	}
 }
 
@@ -102,26 +109,25 @@ addition_id_to_id: ADD IDENTIFIER TO IDENTIFIER {
 	Variable* var1 = lookup_var($2);
 	Variable* var2 = lookup_var($4);
 	if (var1 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $2)
+		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $2);
 	}
 	if (var2 == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $4);
 	}
 }
 
-input: INPUT identifiers
+input: INPUT identifiers 
 
 identifiers: IDENTIFIER | IDENTIFIER SEMICOLON identifiers {
-	Variable* var = lookup_var($4);
+	Variable* var = lookup_var($1);
 	if (var == NULL) {
-		printf("Error | Use of undeclared variable on line %d: %s", yylineno, $4)
+		printf("Error | Use of undeclared variable on line %d: %s\n", yylineno, $1);
 	}
 }
 
 output: PRINT prinputs
 
-prinputs: IDENTIFIER | STRING | IDENTIFIER SEMICOLON prinputs | STRING SEMICOLON prinputs
-
+prinputs: STRING | IDENTIFIER | IDENTIFIER SEMICOLON prinputs | STRING SEMICOLON prinputs
 
 %%
 extern FILE *yyin;
@@ -136,5 +142,10 @@ int main()
 
 void yyerror(const char *s)
 {
-    fprintf(stderr, "Parse error on line %d\n", yylineno);
+	if (strcmp(s, "syntax error") == 0) {
+		printf("A syntax error has been discovered on line %d\n", yylineno);
+	} else {
+    	printf("%s\n", s);
+	}
+	exit(1);
 }
