@@ -17,16 +17,6 @@ int var_index = 0;
 
 int beginning = 1;
 
-void add_var_to_vars(char* name, int numOfDigits) {
-    // Variable* new_var;
-	Variable* new_var = malloc(sizeof(Variable));
-	new_var->name = strdup(name);
-    new_var->numOfDigits = numOfDigits;
-    variables[var_index] = new_var;
-    var_index++;
-}
-
-// // Function to lookup a symbol in the symbol table
 Variable *lookup_var(char *name) {
     for (int i = 0; i < var_index; i++) {
         if (strcmp(variables[i]->name, name) == 0) {
@@ -34,6 +24,25 @@ Variable *lookup_var(char *name) {
         }
     }
     return NULL;
+}
+
+void add_var_to_vars(char* name, int numOfDigits, int lineno) {
+	Variable* var = lookup_var(name);
+	if (var != NULL) {
+		char error_string[256]; 
+		int len = snprintf(error_string, sizeof(error_string), "Error | Variable redeclared on line %d", lineno);
+		if (len >= 0 && len < sizeof(error_string)) {
+			yyerror(error_string);
+		} else {
+			yyerror("syntax error");
+		}
+	} else {
+		Variable* new_var = malloc(sizeof(Variable));
+		new_var->name = strdup(name);
+		new_var->numOfDigits = numOfDigits;
+		variables[var_index] = new_var;
+		var_index++;
+	}
 }
 
 void undeclared_id(char* id, int lineno) {
@@ -75,7 +84,7 @@ beginning_section: BEGINNING DOT | BEGINNING DOT declaration_section | BEGINNING
 declaration_section: declaration| declaration declaration_section
 
 declaration: SPECIFIER IDENTIFIER {missing_dot(yylineno);} | SPECIFIER IDENTIFIER DOT {
-	add_var_to_vars($2, $1);
+	add_var_to_vars($2, $1, yylineno);
 }
 
 body_section: BODY DOT | BODY DOT statements | BODY {missing_dot(yylineno);} | BODY statements {missing_dot(yylineno);}
