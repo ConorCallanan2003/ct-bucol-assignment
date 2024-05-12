@@ -17,11 +17,10 @@
 "input" {return INPUT;}
 "end"   return END;
 ";"     {return SEMICOLON;};
-^"x"+" "  {
+"x"+[^a-z0-9-]  {
     yylval.ival = strlen(yytext) - 1; 
     return SPECIFIER;
 }
-
 \"[^"]*\"   {return STRING;};
 [a-z]+[a-z0-9\-]*   {
     yylval.str = strdup(yytext);

@@ -72,9 +72,9 @@ program: beginning_section body_section END DOT {printf("Parsed successfully!\n"
 
 beginning_section: BEGINNING DOT | BEGINNING DOT declaration_section | BEGINNING {missing_dot(yylineno);} | BEGINNING declaration_section {missing_dot(yylineno);}
 
-declaration_section: declaration DOT | declaration DOT declaration_section | declaration {missing_dot(yylineno);} | declaration declaration_section {missing_dot(yylineno);}
+declaration_section: declaration| declaration declaration_section
 
-declaration: SPECIFIER IDENTIFIER {
+declaration: SPECIFIER IDENTIFIER {missing_dot(yylineno);} | SPECIFIER IDENTIFIER DOT {
 	add_var_to_vars($2, $1);
 }
 
