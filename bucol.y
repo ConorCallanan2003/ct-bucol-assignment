@@ -65,6 +65,7 @@ void missing_dot(int lineno) {
 	}
 }
 
+int errors = 0;
 
 %}
 %union {
@@ -77,7 +78,15 @@ void missing_dot(int lineno) {
 %token BEGINNING SEMICOLON BODY STRING DOT PRINT MOVE TO INPUT ADD END
 %%
 
-program: beginning_section body_section END DOT {printf("Parsed successfully!\n");} | beginning_section body_section END {missing_dot(yylineno);}
+program: beginning_section body_section END {missing_dot(yylineno);} | beginning_section body_section END DOT {
+	if (errors > 0) {
+		printf("\nProgram not well formed.\n");
+	} else {
+		printf("\nProgram well formed!\n");
+	}
+} 
+		
+
 
 beginning_section: BEGINNING DOT | BEGINNING DOT declaration_section | BEGINNING {missing_dot(yylineno);} | BEGINNING declaration_section {missing_dot(yylineno);}
 
@@ -192,5 +201,5 @@ void yyerror(const char *s)
 	} else {
     	printf("%s\n", s);
 	}
-	exit(1);
+	errors++;
 }
